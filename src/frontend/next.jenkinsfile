@@ -1,0 +1,170 @@
+@Library("deploy-lib") _
+
+pipeline {
+    agent any
+     parameters {
+        booleanParam(name: 'DOCKER_BUILD', defaultValue: true, description: 'Build docker image')
+        booleanParam(name: 'DOCKER_DEPLOY', defaultValue: true, description: 'Deploy the docker image')
+        choice(name: "BRANCH_CHOICE", choices: ["main", "master"], description: "Branch")
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'registry', description: 'Registry name')
+        string(name: 'CONTAINER_BUILD_NAME', defaultValue: 'nextjs', description: 'Container build name')
+        string(name: 'CONTAINER_NAME', defaultValue: generateContainerName(), description: 'container')
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker tagging')
+        string(name: 'REPOSITORY_URL', defaultValue: 'https://github.com/p4nh4/next-app.git', description: 'Repository URL')
+    }
+    environment {
+        
+        TELEGRAM_BOT_TOKEN = '6692028659:AAHrL5-rgdJfAZctMVvBSiAfTEjUynBaodc'
+        TELEGRAM_CHAT_ID = '946062363'
+        NAME_FOR_USER="${params.NAME_FOR_USER}"
+        DOCKER_REGISTRY="${params.DOCKER_REGISTRY}"
+        CONTAINER_BUILD_NAME="${params.CONTAINER_BUILD_NAME}"
+        CONTAINER_NAME= "${params.CONTAINER_NAME}"
+        DOCKER_TAG = "${params.DOCKER_TAG}"
+        MIN_PORT = '3000'
+        MAX_PORT = '3010'
+        REPO_URL="${params.REPO_URL}"
+        CREDENTIAL_GIT = 'git-credential'
+        BRANCH = 'main'
+    }
+    stages {
+        stage('Get Source Code') {
+            steps {
+                echo "Branch is ${BRANCH_CHOICE}"
+                script {
+                    git(
+                        REPO_URL,
+                        CREDENTIAL_GIT,
+                        BRANCH,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                echo "Build Image"
+                script {
+                    def dockerfileContent = '''
+                        FROM node:lts as build 
+                            WORKDIR /app 
+                            COPY package*.json ./ 
+                            RUN npm install 
+                            COPY . . 
+                            RUN npm run build 
+
+                            # Production stage
+                            FROM node:lts
+                            WORKDIR /app
+                            COPY --from=build /app ./
+                            RUN npm install -g serve
+                            EXPOSE 3000
+                            CMD ["npm", "start"]
+                    '''
+                    
+                    writeFile file: 'Dockerfile', text: dockerfileContent
+                    def dockerImage = docker.build("nextjs", "-f Dockerfile .")
+
+                    nextBuild(DOCKER_REGISTRY, CONTAINER_BUILD_NAME, DOCKER_TAG, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+                }
+            }
+        }
+        stage('Push image to registry') {
+            steps {
+                script {
+            withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                sh "docker login -u $USER -p $PASS"
+                sh "docker push ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+                     }
+                }
+             }
+        }
+        stage('Pull image from registry ') {
+            
+            steps {
+                script {
+                     withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh "sudo docker login -u $USER -p $PASS"
+                        sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+                     }
+                }
+             }
+        }
+        stage('Deploy Docker') {
+            steps {
+                script {
+                    nextDeploy(
+                        MIN_PORT,
+                        MAX_PORT,
+                        DOCKER_REGISTRY,
+                        CONTAINER_BUILD_NAME,
+                        CONTAINER_NAME,
+                        DOCKER_TAG,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+
+                }
+            }
+        }
+        // stage('Pull image from registry - Agent 1') {
+        //     agent { label 'worker-1' }
+        //     steps {
+        //         script {
+        //              withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+        //                 sh "sudo docker login -u $USER -p $PASS"
+        //                 sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //              }
+        //         }
+        //      }
+        //     }
+        
+        // stage('Pull image from registry - Agent 2') {
+        //     agent { label 'worker-2' }
+        //     steps {
+        //         script {
+        //             withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+        //         sh "sudo docker login -u $USER -p $PASS"
+        //         sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //              }
+        //         }
+        //     } }
+        // stage('Deploy Docker- Agent 1') {
+        //     agent { label 'worker-1' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
+        //                 MIN_PORT,
+        //                 MAX_PORT,
+        //                 DOCKER_REGISTRY,
+        //                 CONTAINER_BUILD_NAME,
+        //                 CONTAINER_NAME,
+        //                 DOCKER_TAG,
+        //                 TELEGRAM_BOT_TOKEN,
+        //                 TELEGRAM_CHAT_ID
+        //             )
+        //         }
+        //     }}
+        // stage('Deploy Docker- Agent 2') {
+            agent { label 'worker-2' }
+            steps {
+                script {
+                    reactDeploy(
+                        MIN_PORT,
+                        MAX_PORT,
+                        DOCKER_REGISTRY,
+                        CONTAINER_BUILD_NAME,
+                        CONTAINER_NAME,
+                        DOCKER_TAG,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+                }
+            } }
+    }
+// }
+def generateContainerName() {
+    // Generate a dynamic default value, for example, based on a timestamp or a random value
+    return "${new Date().getTime()}"
+}

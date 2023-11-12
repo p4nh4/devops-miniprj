@@ -1,0 +1,131 @@
+@Library("deploy-lib") _
+
+pipeline {
+    agent any
+     parameters {
+        booleanParam(name: 'DOCKER_BUILD', defaultValue: true, description: 'Build docker image')
+        booleanParam(name: 'DOCKER_DEPLOY', defaultValue: true, description: 'Deploy the docker image')
+        choice(name: "BRANCH_CHOICE", choices: ["main", "master"], description: "Branch")
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'registry', description: 'Registry name')
+        string(name: 'CONTAINER_BUILD_NAME', defaultValue: 'gradle', description: 'Container build name')
+        string(name: 'CONTAINER_NAME', defaultValue: generateContainerName(), description: 'container')
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker tagging')
+        string(name: 'REPOSITORY_URL', defaultValue: 'https://github.com/begoingto/spring-boot-maven-devops.git', description: 'Repository URL')
+    }
+    environment {
+        TELEGRAM_BOT_TOKEN = '6692028659:AAHrL5-rgdJfAZctMVvBSiAfTEjUynBaodc'
+        TELEGRAM_CHAT_ID = '946062363'
+        NAME_FOR_USER="${params.NAME_FOR_USER}"
+        DOCKER_REGISTRY="${params.DOCKER_REGISTRY}"
+        CONTAINER_BUILD_NAME="${params.CONTAINER_BUILD_NAME}"
+        CONTAINER_NAME= "${params.CONTAINER_NAME}"
+        DOCKER_TAG = "${params.DOCKER_TAG}"
+        MIN_PORT = '8080'
+        MAX_PORT = '8090'
+        REPO_URL="${params.REPO_URL}"
+        CREDENTIAL_GIT = 'git-credential'
+        BRANCH = 'main'
+    }
+    stages {
+        stage('Get Code from SCM') {
+            steps {
+                echo "BRANCH_CHOICE is ${BRANCH_CHOICE}"
+                script {
+                    git(
+                        REPO_URL,
+                        CREDENTIAL_GIT,
+                        BRANCH,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                echo "Building Image for deploying"
+                script {
+                    def dockerfileContent = '''
+                    # Use a base image with Maven and Java
+                    FROM maven:3.9.4-eclipse-temurin-17-alpine AS builder
+
+                    # Set the working directory inside the container
+                    WORKDIR /app
+
+                    # Copy the pom.xml file to the working directory
+                    COPY pom.xml .
+
+                    # Download the project dependencies
+                    # RUN mvn dependency:go-offline -B
+
+                    # Copy the project source code to the working directory
+                    COPY src ./src
+
+                    # Build the project
+                    RUN mvn clean package
+
+                    FROM openjdk:17
+
+                    EXPOSE 8080
+
+                    ENV APP_ENV=prod
+
+                    RUN mkdir -p /images
+
+                    RUN chmod 777 -R /images
+
+                    COPY --from=builder /app/target/*-SNAPSHOT.jar app.jar
+
+                    # Set the command to run when the container starts
+                    CMD ["java", "-jar", "/app.jar", "-Dspring.profiles.active", "${APP_ENV}"]
+
+                    '''
+                    writeFile file: 'Dockerfile', text: dockerfileContent
+                    def dockerImage = docker.build("gradle", "-f Dockerfile .")
+
+                    gradleBuild(DOCKER_REGISTRY, BUILD_CONTAINER_NAME, DOCKER_TAG, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+                }
+            }
+        }
+        stage('Push image to registry') {
+            steps {
+                script {
+                withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                sh "docker login -u $USER -p $PASS"
+                sh "docker push ${DOCKER_REGISTRY}/${BUILD_CONTAINER_NAME}:${DOCKER_TAG}"
+                     }
+                }
+             }
+        }
+        stage('Pull image') {
+            steps {
+                script {
+                     withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                     sh "docker login -u $USER -p $PASS"
+                     sh "docker pull ${DOCKER_REGISTRY}/${BUILD_CONTAINER_NAME}:${DOCKER_TAG}"
+                     }
+                }
+             }
+            } 
+        stage('Deploy') {
+            steps {
+                script {
+                    gradleDeploy(
+                        MIN_PORT,
+                        MAX_PORT,
+                        DOCKER_REGISTRY,
+                        BUILD_CONTAINER_NAME,
+                        CONTAINER_NAME,
+                        DOCKER_TAG,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+                }
+            }
+        }
+    }
+}
+def generateContainerName() {
+    // Generate a dynamic default value, for example, based on a timestamp or a random value
+    return "automatex-${new Date().getTime()}"
+}
