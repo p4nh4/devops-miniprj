@@ -107,5 +107,5 @@ pipeline {
 }
 def generateContainerName() {
     // Generate a dynamic default value, for example, based on a timestamp or a random value
-    return "automatex-${new Date().getTime()}"
+    return "gradle-${new Date().getTime()}"
 }
