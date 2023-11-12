@@ -147,23 +147,24 @@ pipeline {
         //         }
         //     }}
         // stage('Deploy Docker- Agent 2') {
-            agent { label 'worker-2' }
-            steps {
-                script {
-                    reactDeploy(
-                        MIN_PORT,
-                        MAX_PORT,
-                        DOCKER_REGISTRY,
-                        CONTAINER_BUILD_NAME,
-                        CONTAINER_NAME,
-                        DOCKER_TAG,
-                        TELEGRAM_BOT_TOKEN,
-                        TELEGRAM_CHAT_ID
-                    )
-                }
-            } }
+        //     // agent { label 'worker-2' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
+        //                 MIN_PORT,
+        //                 MAX_PORT,
+        //                 DOCKER_REGISTRY,
+        //                 CONTAINER_BUILD_NAME,
+        //                 CONTAINER_NAME,
+        //                 DOCKER_TAG,
+        //                 TELEGRAM_BOT_TOKEN,
+        //                 TELEGRAM_CHAT_ID
+        //             )
+        //         }
+        //     } 
+        // }
     }
-// }
+}
 def generateContainerName() {
     // Generate a dynamic default value, for example, based on a timestamp or a random value
     return "${new Date().getTime()}"
