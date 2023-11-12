@@ -85,8 +85,8 @@ pipeline {
             steps {
                 script {
                      withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh "sudo docker login -u $USER -p $PASS"
-                        sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+                        sh "docker login -u $USER -p $PASS"
+                        sh "docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
                      }
                 }
              }
