@@ -32,7 +32,7 @@ pipeline {
             steps {
                 echo "Branch is ${BRANCH_CHOICE}"
                 script {
-                    git(
+                    gitClone(
                         REPOSITORY_URL,
                         CREDENTIAL_GIT,
                         BRANCH,
