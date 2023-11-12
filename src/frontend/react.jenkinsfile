@@ -85,6 +85,22 @@ pipeline {
                 }
              }
         }
+        stage('Deploy Docker') {
+            steps {
+                script {
+                    reactDeploy(
+                        MIN_PORT,
+                        MAX_PORT,
+                        DOCKER_REGISTRY,
+                        CONTAINER_BUILD_NAME,
+                        CONTAINER_NAME,
+                        DOCKER_TAG,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+                }
+            }
+        }
         // stage('Pull image from registry - Agent 1') {
         //     agent { label 'worker-1' }
         //     steps {
@@ -109,40 +125,40 @@ pipeline {
         //     }
         // }
         
-        stage('Deploy Docker- Agent 1') {
-            agent { label 'worker-1' }
-            steps {
-                script {
-                    reactDeploy(
-                        MIN_PORT,
-                        MAX_PORT,
-                        DOCKER_REGISTRY,
-                        CONTAINER_BUILD_NAME,
-                        CONTAINER_NAME,
-                        DOCKER_TAG,
-                        TELEGRAM_BOT_TOKEN,
-                        TELEGRAM_CHAT_ID
-                    )
-                }
-            }
-        }
-        stage('Deploy Docker- Agent 2') {
-            agent { label 'worker-2' }
-            steps {
-                script {
-                    reactDeploy(
-                        MIN_PORT,
-                        MAX_PORT,
-                        DOCKER_REGISTRY,
-                        CONTAINER_BUILD_NAME,
-                        CONTAINER_NAME,
-                        DOCKER_TAG,
-                        TELEGRAM_BOT_TOKEN,
-                        TELEGRAM_CHAT_ID
-                    )
-                }
-            }
-        }
+        // stage('Deploy Docker- Agent 1') {
+        //     agent { label 'worker-1' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
+        //                 MIN_PORT,
+        //                 MAX_PORT,
+        //                 DOCKER_REGISTRY,
+        //                 CONTAINER_BUILD_NAME,
+        //                 CONTAINER_NAME,
+        //                 DOCKER_TAG,
+        //                 TELEGRAM_BOT_TOKEN,
+        //                 TELEGRAM_CHAT_ID
+        //             )
+        //         }
+        //     }
+        // }
+        // stage('Deploy Docker- Agent 2') {
+        //     agent { label 'worker-2' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
+        //                 MIN_PORT,
+        //                 MAX_PORT,
+        //                 DOCKER_REGISTRY,
+        //                 CONTAINER_BUILD_NAME,
+        //                 CONTAINER_NAME,
+        //                 DOCKER_TAG,
+        //                 TELEGRAM_BOT_TOKEN,
+        //                 TELEGRAM_CHAT_ID
+        //             )
+        //         }
+        //     }
+        // }
     }
 }
 def generateContainerName() {
