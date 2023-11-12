@@ -22,7 +22,7 @@ pipeline {
         DOCKER_TAG = "${params.DOCKER_TAG}"
         MIN_PORT = '8080'
         MAX_PORT = '8090'
-        REPO_URL="${params.REPO_URL}"
+        REPOSITORY_URL="${params.REPOSITORY_URL}"
         CREDENTIAL_GIT = 'git-credential'
         BRANCH = 'main'
     }
@@ -32,7 +32,7 @@ pipeline {
                 echo "BRANCH_CHOICE is ${BRANCH_CHOICE}"
                 script {
                     git(
-                        REPO_URL,
+                        REPOSITORY_URL,
                         CREDENTIAL_GIT,
                         BRANCH,
                         TELEGRAM_BOT_TOKEN,

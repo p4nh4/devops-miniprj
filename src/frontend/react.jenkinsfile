@@ -23,7 +23,7 @@ pipeline {
         DOCKER_TAG = "${params.DOCKER_TAG}"
         MIN_PORT = '3000'
         MAX_PORT = '3010'
-        REPO_URL="${params.REPO_URL}"
+        REPOSITORY_URL="${params.REPOSITORY_URL}"
         CREDENTIAL_GIT = 'git-credential'
         BRANCH = 'main'
     }
@@ -33,7 +33,7 @@ pipeline {
                 echo "Branch is ${BRANCH_CHOICE}"
                 script {
                     git(
-                        REPO_URL,
+                        REPOSITORY_URL,
                         CREDENTIAL_GIT,
                         BRANCH,
                         TELEGRAM_BOT_TOKEN,
@@ -75,29 +75,39 @@ pipeline {
                 }
              }
         }
-        stage('Pull image from registry - Agent 1') {
-            agent { label 'worker-1' }
+        stage('Pull image from registry') {
             steps {
                 script {
                      withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh "sudo docker login -u $USER -p $PASS"
-                        sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+                        sh "docker login -u $USER -p $PASS"
+                        sh "docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
                      }
                 }
              }
-            }
-        
-        stage('Pull image from registry - Agent 2') {
-            agent { label 'worker-2' }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                sh "sudo docker login -u $USER -p $PASS"
-                sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
-                     }
-                }
-            }
         }
+        // stage('Pull image from registry - Agent 1') {
+        //     agent { label 'worker-1' }
+        //     steps {
+        //         script {
+        //              withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+        //                 sh "sudo docker login -u $USER -p $PASS"
+        //                 sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //              }
+        //         }
+        //      }
+        // }
+        
+        // stage('Pull image from registry - Agent 2') {
+        //     agent { label 'worker-2' }
+        //     steps {
+        //         script {
+        //             withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+        //         sh "sudo docker login -u $USER -p $PASS"
+        //         sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //              }
+        //         }
+        //     }
+        // }
         
         stage('Deploy Docker- Agent 1') {
             agent { label 'worker-1' }
