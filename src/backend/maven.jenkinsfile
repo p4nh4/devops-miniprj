@@ -46,38 +46,39 @@ pipeline {
                 echo "Building Image for deploying"
                 script {
                     def dockerfileContent = '''
-                        # Use a base image with Maven and Java
-                        FROM maven:3.9.4-eclipse-temurin-17-alpine AS builder
+                    # Use a base image with Maven and Java
+                    FROM maven:3.9.4-eclipse-temurin-17-alpine AS builder
 
-                        # Set the working directory inside the container
-                        WORKDIR /app
+                    # Set the working directory inside the container
+                    WORKDIR /app
 
-                        # Copy the pom.xml file to the working directory
-                        COPY pom.xml .
+                    # Copy the pom.xml file to the working directory
+                    COPY pom.xml .
 
-                        # Download the project dependencies
-                        # RUN mvn dependency:go-offline -B
+                    # Download the project dependencies
+                    # RUN mvn dependency:go-offline -B
 
-                        # Copy the project source code to the working directory
-                        COPY src ./src
+                    # Copy the project source code to the working directory
+                    COPY src ./src
 
-                        # Build the project
-                        RUN mvn clean package
+                    # Build the project
+                    RUN mvn clean package
 
-                        FROM openjdk:17
+                    FROM adoptopenjdk:17-jdk-hotspot
 
-                        EXPOSE 8080
+                    EXPOSE 8080
 
-                        ENV APP_ENV=prod
+                    ENV APP_ENV=prod
 
-                        RUN mkdir -p /images
+                    RUN mkdir -p /images
+                    RUN chmod 777 -R /images
 
-                        RUN chmod 777 -R /images
+                    COPY --from=builder /app/target/*-SNAPSHOT.jar app.jar
 
-                        COPY --from=builder /app/target/*-SNAPSHOT.jar app.jar
+                    # Set the command to run when the container starts
+                    CMD ["java", "-jar", "/app.jar", "-Dspring.profiles.active", "${APP_ENV}"]
 
-                        # Set the command to run when the container starts
-                        CMD ["java", "-jar", "/app.jar", "-Dspring.profiles.active", "${APP_ENV}"]
+                        
 
 
                     '''
