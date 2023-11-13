@@ -94,7 +94,7 @@ pipeline {
                         MIN_PORT,
                         MAX_PORT,
                         DOCKER_REGISTRY,
-                        BUILD_CONTAINER_NAME,
+                        CONTAINER_BUILD_NAME,
                         CONTAINER_NAME,
                         DOCKER_TAG,
                         TELEGRAM_BOT_TOKEN,
