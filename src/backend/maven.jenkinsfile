@@ -6,11 +6,11 @@ pipeline {
         booleanParam(name: 'DOCKER_BUILD', defaultValue: true, description: 'Build docker image')
         booleanParam(name: 'DOCKER_DEPLOY', defaultValue: true, description: 'Deploy the docker image')
         choice(name: "BRANCH_CHOICE", choices: ["main", "master"], description: "Branch")
-        string(name: 'DOCKER_REGISTRY', defaultValue: 'registry', description: 'Registry name')
-        string(name: 'CONTAINER_BUILD_NAME', defaultValue: 'gradle', description: 'Container build name')
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'p4nh4o3', description: 'Registry name')
+        string(name: 'CONTAINER_BUILD_NAME', defaultValue: 'maven', description: 'Container build name')
         string(name: 'CONTAINER_NAME', defaultValue: generateContainerName(), description: 'container')
         string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker tagging')
-        string(name: 'REPOSITORY_URL', defaultValue: 'https://github.com/begoingto/spring-boot-maven-devops.git', description: 'Repository URL')
+        string(name: 'REPOSITORY_URL', defaultValue: 'ur-url', description: 'Repository URL')
     }
     environment {
         TELEGRAM_BOT_TOKEN = '6692028659:AAHrL5-rgdJfAZctMVvBSiAfTEjUynBaodc'
@@ -138,7 +138,7 @@ pipeline {
                 }
             }
         }
-        tage('Deploy - Agent2') {
+        stage('Deploy - Agent2') {
             agent { label 'worker2' }
             steps {
                 script {
