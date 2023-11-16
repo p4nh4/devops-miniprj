@@ -80,21 +80,61 @@ pipeline {
                 }
              }
         }
-        // stage('Pull image from registry ') {
+        stage('Pull image from registry ') {
             
+            steps {
+                script {
+                     withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh "docker login -u $USER -p $PASS"
+                        sh "docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+                     }
+                }
+             }
+        }
+        stage('Deploy Docker') {
+            steps {
+                script {
+                    nextDeploy(
+                        MIN_PORT,
+                        MAX_PORT,
+                        DOCKER_REGISTRY,
+                        CONTAINER_BUILD_NAME,
+                        CONTAINER_NAME,
+                        DOCKER_TAG,
+                        TELEGRAM_BOT_TOKEN,
+                        TELEGRAM_CHAT_ID
+                    )
+
+                }
+            }
+        }
+        // stage('Pull Image - Agent 1') {
+        //     agent { label 'worker1' }
         //     steps {
         //         script {
         //              withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-        //                 sh "docker login -u $USER -p $PASS"
-        //                 sh "docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //                 sh "sudo docker login -u $USER -p $PASS"
+        //                 sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
         //              }
         //         }
         //      }
-        // }
-        // stage('Deploy Docker') {
+        //     }
+        
+        // stage('Pull Image - Agent 2') {
+        //     agent { label 'worker2' }
         //     steps {
         //         script {
-        //             nextDeploy(
+        //             withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+        //         sh "sudo docker login -u $USER -p $PASS"
+        //         sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
+        //              }
+        //         }
+        //     } }
+        // stage('Deploy - Agent 1') {
+        //     agent { label 'worker1' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
         //                 MIN_PORT,
         //                 MAX_PORT,
         //                 DOCKER_REGISTRY,
@@ -104,65 +144,25 @@ pipeline {
         //                 TELEGRAM_BOT_TOKEN,
         //                 TELEGRAM_CHAT_ID
         //             )
-
         //         }
-        //     }
+        //     }}
+        // stage('Deploy - Agent 2') {
+        //     agent { label 'worker2' }
+        //     steps {
+        //         script {
+        //             reactDeploy(
+        //                 MIN_PORT,
+        //                 MAX_PORT,
+        //                 DOCKER_REGISTRY,
+        //                 CONTAINER_BUILD_NAME,
+        //                 CONTAINER_NAME,
+        //                 DOCKER_TAG,
+        //                 TELEGRAM_BOT_TOKEN,
+        //                 TELEGRAM_CHAT_ID
+        //             )
+        //         }
+        //     } 
         // }
-        stage('Pull Image - Agent 1') {
-            agent { label 'worker1' }
-            steps {
-                script {
-                     withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                        sh "sudo docker login -u $USER -p $PASS"
-                        sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
-                     }
-                }
-             }
-            }
-        
-        stage('Pull Image - Agent 2') {
-            agent { label 'worker2' }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker_hub_access_account', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                sh "sudo docker login -u $USER -p $PASS"
-                sh "sudo docker pull ${DOCKER_REGISTRY}/${CONTAINER_BUILD_NAME}:${DOCKER_TAG}"
-                     }
-                }
-            } }
-        stage('Deploy - Agent 1') {
-            agent { label 'worker1' }
-            steps {
-                script {
-                    reactDeploy(
-                        MIN_PORT,
-                        MAX_PORT,
-                        DOCKER_REGISTRY,
-                        CONTAINER_BUILD_NAME,
-                        CONTAINER_NAME,
-                        DOCKER_TAG,
-                        TELEGRAM_BOT_TOKEN,
-                        TELEGRAM_CHAT_ID
-                    )
-                }
-            }}
-        stage('Deploy - Agent 2') {
-            agent { label 'worker2' }
-            steps {
-                script {
-                    reactDeploy(
-                        MIN_PORT,
-                        MAX_PORT,
-                        DOCKER_REGISTRY,
-                        CONTAINER_BUILD_NAME,
-                        CONTAINER_NAME,
-                        DOCKER_TAG,
-                        TELEGRAM_BOT_TOKEN,
-                        TELEGRAM_CHAT_ID
-                    )
-                }
-            } 
-        }
     }
 }
 def generateContainerName() {
